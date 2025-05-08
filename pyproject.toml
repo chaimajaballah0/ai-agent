@@ -1,0 +1,28 @@
+[project]
+name = "test"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "chaimajaballah0",email = "chaimajaballah57@gmail.com"}
+]
+readme = "README.md"
+requires-python = "^3.10"
+dependencies = [
+    "langchain (>=0.3.25,<0.4.0)",
+    "langgraph (>=0.4.1,<0.5.0)",
+    "python-dotenv (>=1.1.0,<2.0.0)",
+    "google-genai (>=1.13.0,<2.0.0)",
+    "mcp[cli] (>=1.7.1,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "beautifulsoup4 (>=4.13.4,<5.0.0)",
+    "langchain-google-community (>=2.0.7,<3.0.0)",
+    "langchain-google-genai (>=2.1.4,<3.0.0)",
+    "google-api-python-client (>=2.169.0,<3.0.0)",
+    "google-auth-httplib2 (>=0.2.0,<0.3.0)",
+    "google-auth-oauthlib (>=1.2.2,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
