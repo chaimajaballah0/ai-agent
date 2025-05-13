@@ -14,16 +14,13 @@ from googleapiclient.errors import HttpError
 from client.persistence.init_db import init_db
 from client.persistence.models.user import User
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 logger.info("Starting Google authentication...")
 
-# Check for required environment variables
 creds_file_path = os.getenv("GMAIL_CREDS_FILE_PATH")
 token_path = os.getenv("GMAIL_TOKEN_PATH")
 jwt_key = os.getenv("JWT_KEY")
@@ -56,7 +53,6 @@ SCOPES = [
     "https://www.googleapis.com/auth/gmail.send",
 ]
 
-# Singleton instance holder
 _google_service_instance: Optional["GoogleServices"] = None
 
 class GoogleServices:
@@ -78,12 +74,10 @@ class GoogleServices:
     def _get_token(self) -> Credentials:
         creds = None
 
-        # Try loading existing token from file
         if os.path.exists(self.token_path):
             logger.info(f"Loading token from file: {self.token_path}")
             creds = Credentials.from_authorized_user_file(self.token_path, self.scopes)
 
-        # If token is expired and refreshable, refresh it silently
         if creds and creds.expired and creds.refresh_token:
             try:
                 logger.info("Refreshing expired token...")
@@ -91,32 +85,21 @@ class GoogleServices:
                 return creds
             except Exception as e:
                 logger.warning(f"Token refresh failed: {e}")
-                creds = None  # fallback to re-authentication
+                creds = None
 
-        # If token doesn't exist or is invalid, do one-time manual auth via console
         if not creds or not creds.valid:
             logger.info("No valid token found. Starting console-based OAuth flow...")
             flow = InstalledAppFlow.from_client_secrets_file(
                 self.creds_file_path,
                 self.scopes
             )
-            creds = flow.run_console()
+            creds = flow.run_local_server()
 
-            # Save token to file
             with open(self.token_path, "w") as token_file:
                 token_file.write(creds.to_json())
                 logger.info(f"Token saved to: {self.token_path}")
 
         return creds
-
-    # async def authenticate_and_store_user(self):
-    #     claims = id_token.verify_oauth2_token(self.token.id_token, requests.Request())
-    #     self.user_id = claims["sub"]
-    #     self.user_email = claims["email"]
-
-    #     logger.info(f"Authenticated Google user: {self.user_email} ({self.user_id})")
-    #     await User.save_if_not_exists(user_id=self.user_id, email=self.user_email)
-    #     return self.user_id
 
     async def authenticate_and_store_user(self):
         logger.info("Fetching user profile from Google UserInfo endpoint...")

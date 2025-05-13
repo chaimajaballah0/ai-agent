@@ -1,3 +1,4 @@
+import logging
 from typing import List, Union
 import getpass
 import os
@@ -12,6 +13,11 @@ from langchain_core.messages import (
     SystemMessage,
 )
 from client.configuration.configuration import Configuration
+
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 load_dotenv()  # Load environment variables from .env file
 

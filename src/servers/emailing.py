@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import base64
+from functools import wraps
 from email.header import decode_header
 from base64 import urlsafe_b64decode
 from email import message_from_bytes
@@ -14,14 +15,11 @@ from mcp.server.fastmcp import FastMCP
 from authentication.auth import get_google_service_instance
 
 
-# Load environment variables
 load_dotenv()
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Global placeholders
 google_service = None
 gmail_api = None
 
@@ -36,6 +34,16 @@ def decode_mime_header(header: str) -> str:
     return decoded_string
 
 
+def requires_gmail_auth(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        global google_service, gmail_api
+        if google_service is None or gmail_api is None:
+            logger.info("Gmail service not authenticated, authenticating now...")
+            await authenticate_gmail()
+        return await func(*args, **kwargs)
+    return wrapper
+
 mcp = FastMCP("Email")
 logger.info("MCP server created")
 
@@ -47,13 +55,15 @@ async def authenticate_gmail():
     logger.info(f"Authenticated Gmail user: {google_service.user_email}")
 
 
-@mcp.tool()
+@mcp.tool(description="Test tool to check if the server is running")
+@requires_gmail_auth
 async def test_tool() -> dict:
     logger.info("Test tool called")
     return {"status": "success", "message": "Test tool is working"}
 
 
-@mcp.tool()
+@mcp.tool(description="Send an email using Gmail API")
+@requires_gmail_auth
 async def send_email(recipient_id: str, subject: str, message: str) -> dict:
     logger.info("=== send_email tool called ===")
     try:
@@ -79,7 +89,8 @@ async def send_email(recipient_id: str, subject: str, message: str) -> dict:
         return {"status": "error", "error_message": str(e)}
 
 
-@mcp.tool()
+@mcp.tool(description="Get unread emails from Gmail")
+@requires_gmail_auth
 async def get_unread_emails() -> list[dict[str, str]] | str:
     try:
         user_id = 'me'
@@ -99,7 +110,8 @@ async def get_unread_emails() -> list[dict[str, str]] | str:
         return f"An HttpError occurred: {str(error)}"
 
 
-@mcp.tool()
+@mcp.tool(description="Read an email by ID")
+@requires_gmail_auth
 async def read_email(email_id: str) -> dict[str, str] | str:
     try:
         msg = gmail_api.users().messages().get(userId="me", id=email_id, format='raw').execute()
@@ -131,7 +143,8 @@ async def read_email(email_id: str) -> dict[str, str] | str:
         return f"An HttpError occurred: {str(error)}"
 
 
-@mcp.tool()
+@mcp.tool(description="Mark an email as read")
+@requires_gmail_auth
 async def mark_email_as_read(email_id: str) -> str:
     try:
         gmail_api.users().messages().modify(
@@ -144,7 +157,8 @@ async def mark_email_as_read(email_id: str) -> str:
         return f"An HttpError occurred: {str(error)}"
 
 
-@mcp.tool()
+@mcp.tool(description="Delete an email by ID")
+@requires_gmail_auth
 async def trash_email(email_id: str) -> str:
     try:
         gmail_api.users().messages().trash(userId="me", id=email_id).execute()
@@ -153,7 +167,8 @@ async def trash_email(email_id: str) -> str:
         return f"An HttpError occurred: {str(error)}"
 
 
-@mcp.tool()
+@mcp.tool(description="Open an email in the browser")
+@requires_gmail_auth
 async def open_email(email_id: str) -> str:
     try:
         url = f"https://mail.google.com/#all/{email_id}"
@@ -167,7 +182,8 @@ logger.info("All tools registered")
 
 async def main():
     await authenticate_gmail()
-    # Rest of your code here
+    logger.info("Gmail service authenticated")
+
 
 if __name__ == "__main__":
     logger.info("Starting MCP server...")

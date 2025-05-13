@@ -22,7 +22,7 @@ async def fetch_url_text(url: str, timeout: float = 30.0) -> str:
         except httpx.HTTPError:
             return ""
 
-@mcp.tool()
+@mcp.tool(description="Fetch text from a website")
 async def website_browsing(url: str = None) -> str:
     """
     Fetch the text from a website.

@@ -42,12 +42,13 @@ dependencies = [
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.5"
-
 [tool.poetry]
+name = "langgraph-agent-framework"
+version = "0.1.0"
+description = "LangGraph-based AI agent system with Google OAuth, scraping, and backend coordination"
+authors = ["chaimajaballah0 <chaimajaballah57@gmail.com>"]
 packages = [
     { include = "authentication", from = "src" },
     { include = "client", from = "src" },
-    { include = "servers", from = "src" },
+    { include = "servers", from = "src" }
 ]

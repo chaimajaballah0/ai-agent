@@ -1,22 +1,23 @@
 from __future__ import annotations
 import getpass
+import logging
 import os
 from dotenv import load_dotenv
 from dataclasses import dataclass
-from typing import List, Optional, Sequence
+from typing import List, Optional
 from langchain_core.messages import (
     FunctionMessage,
     SystemMessage,
 )
 from langchain import hub
 from langchain_core.runnables import RunnableBranch
-from langchain_core.tools import BaseTool
-from output_parser import LLMCompilerPlanParser
 from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_google_genai import ChatGoogleGenerativeAI
 
+from client.llm_compiler.output_parser import LLMCompilerPlanParser
 from client.configuration.configuration import Configuration
-
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -40,33 +41,34 @@ class CompilerState:
 
 class Planner:
     """LLM that produces a DAG‑style plan from the user question."""
-    def __init__(self, config: Configuration) -> None:
+    def __init__(self, llm, config: Configuration) -> None:
         self.config = config
-        self.llm = ChatGoogleGenerativeAI(
-            model=self.config.llm_model,
-            google_api_key=self.config.api_key,
-        )
+        self.llm = llm
         self.planner = None
         self.replanner = None
         self.base_prompt = base_prompt
-        self.tools: Sequence[BaseTool]= None
+        self.tools = None
         self.model = None
+        self.client = None
+        
 
+    async def init_client_and_tools(self):
+        """Start client and fetch tools (keeping session open)."""
+        if self.client is None:
+            connections = self.config.load_config()["mcpServers"]
+            self.client = MultiServerMCPClient(connections)
+            await self.client.__aenter__()
 
-    async def __get_tools__(self):
-        """Get the tools from the config."""
-        connections = self.config.load_config()["mcpServers"]
-        async with MultiServerMCPClient(connections) as client:
-            tools = tuple(client.get_tools())
-            self.tools = tools
+        self.tools = self.client.get_tools()
     async def create_planner(self):
-        await self.__get_tools__()
+        logging.info("Getting tools from the config...")
+        """Get the tools from the config."""
+        await self.init_client_and_tools()
+        logging.info(f"tools: {self.tools}")
         """Create the planner and replanner."""
         tool_descriptions = "\n".join(
-            f"{i+1}. {tool.description}\n"
-            for i, tool in enumerate(
-                self.tools
-            )  # +1 to offset the 0 starting index, we want it count normally from 1.
+            f"{i+1}. {tool.name}: {tool.description}"
+            for i, tool in enumerate(self.tools)
         )
         planner_prompt = self.base_prompt.partial(
             replan="",
@@ -99,7 +101,6 @@ class Planner:
                     break
             state[-1].content = state[-1].content + f" - Begin counting at : {next_task}"
             return {"messages": state}
-        
         self.model =  (
             RunnableBranch(
                 (should_replan, wrap_and_get_last_index | replanner_prompt),

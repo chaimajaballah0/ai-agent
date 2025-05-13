@@ -1,6 +1,10 @@
 {
   "mcpServers":
     {
+      "email": {
+            "command": "poetry",
+            "args": ["run", "python", "src/servers/emailing.py"]
+        },
     "search": {
         "command": "poetry",
         "args": ["run", "python", "src/servers/search.py"]

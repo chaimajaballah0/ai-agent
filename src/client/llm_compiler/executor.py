@@ -1,3 +1,4 @@
+import logging
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -8,17 +9,14 @@ from langchain_core.messages import (
     BaseMessage,
     FunctionMessage
 )
-from output_parser import  Task
+from client.llm_compiler.output_parser import  Task
 
-
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 class SchedulerInput(TypedDict):
     messages: List[BaseMessage]
     tasks: Iterable[Task]
-
-
-class TaskScheduler:
-    def __init__(self, planner):
-        self.planner = planner
 
 
 def _get_observations(messages: List[BaseMessage]) -> Dict[int, Any]:
@@ -29,7 +27,7 @@ def _get_observations(messages: List[BaseMessage]) -> Dict[int, Any]:
             results[int(message.additional_kwargs["idx"])] = message.content
     return results
 
-def _execute_task(task, observations, config):
+async def _execute_task(task, observations, config):
     tool_to_use = task["tool"]
     if isinstance(tool_to_use, str):
         return tool_to_use
@@ -50,7 +48,7 @@ def _execute_task(task, observations, config):
             f" Args could not be resolved. Error: {repr(e)}"
         )
     try:
-        return tool_to_use.invoke(resolved_args, config)
+        return await tool_to_use.ainvoke(resolved_args, config)
     except Exception as e:
         return (
             f"ERROR(Failed to call {tool_to_use.name} with args {args}."
@@ -80,15 +78,17 @@ def _resolve_arg(arg: Union[str, Any], observations: Dict[int, Any]):
 
 
 @as_runnable
-def schedule_task(task_inputs, config):
+async def schedule_task(task_inputs, config):
     task: Task = task_inputs["task"]
     observations: Dict[int, Any] = task_inputs["observations"]
     try:
-        observation = _execute_task(task, observations, config)
+        observation = await _execute_task(task, observations, config)
     except Exception:
         import traceback
+        import sys
 
-        observation = traceback.format_exception()  # repr(e) +
+        exc_type, exc_value, tb = sys.exc_info()
+        observation = "".join(traceback.format_exception(exc_type, exc_value, tb))
     observations[task["idx"]] = observation
 
 
@@ -106,7 +106,7 @@ def schedule_pending_task(
 
 
 @as_runnable
-def schedule_tasks(scheduler_input: SchedulerInput) -> List[FunctionMessage]:
+async def schedule_tasks(scheduler_input: SchedulerInput) -> List[FunctionMessage]:
     """Group the tasks into a DAG schedule."""
     # For streaming, we are making a few simplifying assumption:
     # 1. The LLM does not create cyclic dependencies
@@ -145,7 +145,7 @@ def schedule_tasks(scheduler_input: SchedulerInput) -> List[FunctionMessage]:
             else:
                 # No deps or all deps satisfied
                 # can schedule now
-                schedule_task.invoke(dict(task=task, observations=observations))
+                await schedule_task.ainvoke(dict(task=task, observations=observations))
                 # futures.append(executor.submit(schedule_task.invoke, dict(task=task, observations=observations)))
 
         # All tasks have been submitted or enqueued

@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: langgraph_agent
+    env_file:
+      - .env
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    command: poetry run python src/servers/main.py
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+        POSTGRES_USER: ${DB_USER}
+        POSTGRES_PASSWORD: ${DB_PASSWORD}
+        POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "15432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

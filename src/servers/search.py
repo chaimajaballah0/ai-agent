@@ -13,12 +13,11 @@ if not SERPAPI_API_KEY:
     logging.error("SERPAPI_API_KEY environment variable is not set!")
     raise ValueError("SERPAPI_API_KEY environment variable is required")
 else:
-    # Log first 4 chars of API key for debugging (safe to show partial key)
     logging.info(f"API Key found (starts with): {SERPAPI_API_KEY}...")
 
 SERPER_URL = "https://google.serper.dev/search"
 
-@mcp.tool()
+@mcp.tool(description="Search the web using Serper.dev")
 async def search_web(query: str, num: int = 3, site: str | None = None) -> dict:
     """
     Uses Serper.dev to search the web.

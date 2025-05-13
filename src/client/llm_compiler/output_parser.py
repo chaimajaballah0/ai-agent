@@ -1,4 +1,5 @@
 import ast
+import logging
 import re
 from typing import (
     Any,
@@ -27,6 +28,9 @@ END_OF_PLAN = "<END_OF_PLAN>"
 
 ### Helper functions
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 def _ast_parse(arg: str) -> Any:
     try:
@@ -92,6 +96,7 @@ def instantiate_task(
     args: Union[str, Any],
     thought: Optional[str] = None,
 ) -> Task:
+    logging.debug(f"Tool name: {tools}")
     if tool_name == "join":
         tool = "join"
     else:
@@ -165,6 +170,7 @@ class LLMCompilerPlanParser(BaseTransformOutputParser[dict], extra="allow"):
             # if action is parsed, return the task, and clear the buffer
             idx, tool_name, args, _ = match.groups()
             idx = int(idx)
+            logging.debug(f"tools: {self.tools}")
             task = instantiate_task(
                 tools=self.tools,
                 idx=idx,
