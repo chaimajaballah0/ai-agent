@@ -1,0 +1,13 @@
+{
+  "mcpServers":
+    {
+    "search": {
+        "command": "poetry",
+        "args": ["run", "python", "src/servers/search.py"]
+    },
+    "website_browsing": {
+        "command": "poetry",
+        "args": ["run", "python", "src/servers/website_browsing.py"]
+    }
+  }
+}

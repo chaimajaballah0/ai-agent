@@ -7,18 +7,20 @@ from typing import Any
 class Configuration:
     """Manages configuration and environment variables for the MCP client."""
 
-    def __init__(self) -> None:
+    def __init__(self, mcp_config_path: str) -> None:
         """Initialize configuration with environment variables."""
         self.load_env()
         self.api_key = os.getenv("GEMINI_API_KEY")
+        self.llm_model = os.getenv("LLM_MODEL")
+        self.project = os.getenv("PROJECT")
+        self.mcp_config_path = mcp_config_path
 
     @staticmethod
     def load_env() -> None:
         """Load environment variables from .env file."""
         load_dotenv()
 
-    @staticmethod
-    def load_config(file_path: str) -> dict[str, Any]:
+    def load_config(self) -> dict[str, Any]:
         """Load server configuration from JSON file.
 
         Args:
@@ -31,7 +33,7 @@ class Configuration:
             FileNotFoundError: If configuration file doesn't exist.
             JSONDecodeError: If configuration file is invalid JSON.
         """
-        with open(file_path, "r") as f:
+        with open(self.mcp_config_path, "r") as f:
             return json.load(f)
 
     @property

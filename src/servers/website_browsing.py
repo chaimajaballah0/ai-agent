@@ -36,6 +36,7 @@ async def website_browsing(url: str = None) -> str:
     if url:
         text = await fetch_url_text(url)
         if text:
+            print(f"--- From {url} ---\n{text}\n")
             texts.append(f"--- From {url} ---\n{text}\n")
 
     return "\n".join(texts).strip()

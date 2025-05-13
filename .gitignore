@@ -1,3 +1,5 @@
 .env
 .google
 __pycache__
+.pytest_cache
+.trunk

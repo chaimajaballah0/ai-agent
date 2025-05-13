@@ -1,7 +1,7 @@
 import asyncio
-from agent import ChatSession, LLMClient
+from client.assistant.agent import ChatSession, LLMClient
 from configuration.configuration import Configuration
-from server import Server
+from client.agent.server import Server
 
 async def main() -> None:
     """Initialize and run the chat session."""
@@ -10,7 +10,7 @@ async def main() -> None:
     servers = [
         Server(name, srv_config)
         for name, srv_config in server_config["mcpServers"].items()
-    ]
+    ] 
     llm_client = LLMClient(api_key=config.api_key)
     chat_session = ChatSession(servers, llm_client)
     await chat_session.start()
